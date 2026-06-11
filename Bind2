@@ -1,0 +1,227 @@
+№11
+HQ-CLI# apt-get install yandex-browser-stable -y
+
+№1
+1.BR-SRV# apt-get update && apt-get install task-samba-dc bind-utils -y
+2.HQ-SRV# vim /etc/dnsmasq.conf
+3.(rascomentit) listen-address=192.168.1.10
+4.(otredachit na) server=77.88.8.8
+5.zakomentit stroki nije
+6.HQ-SRV# systemctl restart dnsmasq.service
+7.HQ-CLI - PCM po znaky seti "Edit Connections"
+8.IPv4 Settings (Manual)
+9.192.168.2.10	 24   192.168.2.1
+10.DNS servers	192.168.3.10
+11.Search domains	au-team.irpo
+12.(passwd: resu)
+13.Perezapysti seti po imeni
+14.BR-SRV# rm -f /etc/samba/smb.conf
+15.BR-SRV# vim /etc/net/ifaces/ens19/resolv.conf
+nameserver 127.0.0.1	
+16.BR-SRV# systemctl restart network
+17.BR-SRV# samba-tool domain provision
+Enter x4
+192.168.1.10
+P@ssw0rd 
+18.BR-SRV# systemctl enable --now samba
+19.BR-SRV# cp /var/lib/samba/private/krb5.conf /etc/krb5.conf
+y
+20.BR-SRV# systemctl restart samba.service
+!!BR-SRV# samba-tool domain info 127.0.0.1
+!!BR-SRV# host au-team.irpo
+21.BR-SRV# reboot
+22.BR-SRV# samba-tool group add hq
+23.BR-SRV# for i in {1..5}; 
+> do
+> samba-tool user add hquser$i P@ssw0rd;
+> samba-tool user setexpiry hquser$i --noexpiry;
+> samba-tool group addmembers "hq" hquser$i;
+> done
+!!BR-SRV# samba-tool group listmembers hq
+24.HQ-CLI# apt-get update && apt-get install bind-utils libnss-role -y
+25.ACC Authentication, Active Directory Domain
+Apply P@ssw0rd
+26.HQ-CLI# control libnss-role
+27.HQ-CLI# roleadd hq wheel
+28.HQ-CLI# rolelst
+29.HQ-CLI# vim /etc/sudoers
+Cmnd_Alias	SHELLCMD  =  /bin/cat,  /bin/grep,  /usr/bin/id		
+WHEEL_USERS  ALL=(ALL:ALL)  SHELLCMD
+Reboot hquser(1-5) (passwd: P@ssw0rd)
+30.HQ-CLI# sudo id
+31.HQ-CLI# sudo cat /etc/hosts
+32.HQ-CLI# sudo grep ‘127.0.0.1’ /etc/hosts
+33.HQ-CLI# sudo su -	(ne pustit)
+
+№2
+1.HQ-SRV# vim /etc/net/ifaces/ens19/resolv.conf
+nameserver 95.167.167.95
+2.HQ-SRV# systemctl restart network
+3.HQ-SRV# apt-get update && apt-get install mdadm -y
+!!HQ-SRV# lsblk
+4.HQ-SRV# mdadm --create --verbose /dev/md0 -l 0 -n 2 /dev/sdb /dev/sdс 
+!!HQ-SRV# lsblk
+5.HQ-SRV# mdadm --detail --scan --verbose >> /etc/mdadm.conf
+6.HQ-SRV# mkfs.ext4 /dev/md0
+!!HQ-SRV# blkid /dev/md0
+7.HQ-SRV# vim /etc/fstab
+/dev/md0	/raid	ext4	defaults	0	0	
+8.HQ-SRV# mkdir /raid
+9.HQ-SRV# mount -av
+!!HQ-SRV# df -h
+10.HQ-SRV# reboot
+!!HQ-SRV# df -h
+
+№3
+1.HQ-SRV# apt-get install nfs-server nfs-utils -y
+2.HQ-SRV# mkdir /raid/nfs
+3.HQ-SRV# chmod 777 /raid/nfs
+4.HQ-SRV# vim /etc/exports
+5./raid/nfs	192.168.2.0/24(rw,no_root_squash)	
+6.HQ-SRV# exportfs -arv
+7.HQ-SRV# systemctl enable --now nfs-server.service
+8.HQ-SRV# systemctl restart nfs-server.service
+9.HQ-CLI# apt-get install nfs-utils nfs-clients -y
+10.HQ-CLI# mkdir /mnt/nfs
+11.HQ-CLI# chmod 777 /mnt/nfs
+12.HQ-CLI# vim /etc/fstab
+192.168.1.10:/raid/nfs /mnt/nfs nfs	defaults	0	0
+13.HQ-CLI# mount -av 
+14.HQ-CLI# df -h
+15.Reboot hquser(1-5) (Passwd: P@ssw0rd)
+16.Otkrivaem (My PC) v poicke /mnt/nfs
+17.sozdaem txt file 
+18.user & povtoryaem: papka - file (no drugoe name)
+19.HQ-SRV# ls -l /raid/nfs
+
+№4
+1.ISP# vim /etc/chrony.conf
+#pool pool.ntp.org iburst					
+server ntp0.ntp-servers.net iburst prefer minstratum 4	
+local stratum 5							
+allow 0.0.0.0/0							
+2.ISP# systemctl restart chronyd
+!!ISP# chronyc tracking
+!!ISP# chronyc sources
+3.HQ-RTR# ntp server 172.16.4.1
+4.HQ-RTR# write
+!!HQ-RTR# do sh ntp status
+5.BR-RTR# ntp server 172.16.5.1
+6.BR-RTR# write
+!!BR-RTR# do sh ntp status
+7.HQ-SRV# apt-get install chrony -y
+8.HQ-SRV# vim /etc/chrony.conf
+#pool pool.ntp.org iburst	
+server 172.16.4.1 iburst		
+9.HQ-SRV# systemctl enable --now chronyd
+10.HQ-SRV# systemctl restart chronyd
+!!HQ-SRV# chronyc sources
+11.HQ-CLI# vim /etc/chrony.conf
+server 172.16.4.1 iburst		
+12.HQ-CLI# systemctl restart chronyd
+!!HQ-CLI# chronyc sources
+!!HQ-CLI# date
+13.HQ-CLI заходим в ACC в раздел Date Time
+Get time from NTP server: 172.16.4.1
+!!HQ-CLI# chronyc sources
+14.BR-SRV# apt-get install chrony -y
+15.BR-SRV# vim /etc/chrony.conf
+#pool pool.ntp.org iburst	
+server 172.16.5.1 iburst		
+16.BR-SRV# systemctl enable --now chronyd
+17.BR-SRV# systemctl restart chronyd
+!!BR-SRV# chronyc sources
+
+№5
+1.HQ-CLI# systemctl enable --now sshd
+2.HQ-RTR BR-RTR# security none
+3.HQ-RTR BR-RTR# write
+4.BR-SRV# apt-get install ansible sshpass -y
+5.BR-SRV# vim /etc/ansible/ansible.cfg
+inventory	=	/etc/ansible/hosts	
+host_key_checking	=	False		
+6.BR-SRV# vim /etc/ansible/hosts
+HQ-SRV ansible_host=192.168.1.10 ansible_user=sshuser ansible_password=P@ssw0rd ansible_port=2026
+HQ-CLI ansible_host=192.168.2.10 ansible_user=user ansible_password=resu
+HQ-RTR ansible_host=192.168.5.1 ansible_user=net_admin ansible_password=P@ssw0rd ansible_connection=network_cli ansible_network_os=ios
+BR-RTR ansible_host=192.168.3.1 ansible_user=net_admin ansible_password=P@ssw0rd ansible_connection=network_cli ansible_network_os=ios
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+7.HQ-SRV# vim /etc/openssh/sshd_config
+Port 2026			
+AllowUsers sshuser	
+8.HQ-SRV# systemctl restart sshd.service
+9.HQ-RTR BR-RTR# username net_admin
+10.HQ-RTR BR-RTR# password P@ssw0rd
+11.HQ-RTR BR-RTR# role admin
+12.HQ-RTR BR-RTR# write
+13.BR-SRV# ansible -m ping all
+
+№7
+1.HQ-SRV# apt-get install lamp-server -y
+2.HQ-SRV# mount /dev/sr0 /mnt
+!!HQ-SRV# ls /mnt
+!!HQ-SRV# ls /mnt/web
+3.HQ-SRV# cp /mnt/web/index.php /var/www/html
+4.HQ-SRV# cp /mnt/web/logo.png /var/www/html
+5.HQ-SRV# vim /var/www/html/index.php
+$username  = ”webc”;			
+$password  = ”P@ssw0rd”;	
+$dbname  = ”webdb”;		
+6.HQ-SRV# systemctl enable --now mariadb
+7.HQ-SRV# mariadb -u root
+8.HQ-SRV> CREATE DATABASE webdb;
+9.HQ-SRV> CREATE USER ‘webc’@’localhost’  IDENTIFIED BY ‘P@ssw0rd’;
+10.HQ-SRV> GRANT ALL PRIVILEGES ON webdb.*  TO  ‘webc’@’localhost’  WITH GRANT OPTION;
+11.HQ-SRV> exit
+12.HQ-SRV# mariadb -u webc -p -D webdb < /mnt/web/dump.sql
+P@ssw0rd
+13.HQ-SRV# mariadb
+14.HQ-SRV> USE webdb;
+15.HQ-SRV> SHOW TABLES;
+16.HQ-SRV> exit
+17.HQ-SRV# systemctl enable --now httpd2
+18. HQ-CLI v brayzere 192.168.1.10
+
+№8
+!!HQ-RTR# sh ip int br
+1.HQ-RTR# ip nat source static tcp 192.168.1.10 80 172.16.4.4 8080
+2.HQ-RTR# ip nat source static tcp 192.168.1.10 2026 172.16.4.4 2026
+3.HQ-RTR# write
+!!HQ-RTR# do sh ip nat translations
+!!BR-RTR# do sh ip int br
+4.BR-RTR# ip nat source static tcp 192.168.3.10 8080 172.16.5.5 8080
+5.BR-RTR# ip nat source static tcp 192.168.3.10 2026 172.16.5.5 2026
+6.BR-RTR# write
+!!BR-RTR# do sh ip nat translations
+7.HQ-CLI v brayzere: 172.16.5.5:8080
+(“https://” ispravit na “http://”)
+8.BR-SRV# vim /etc/openssh/sshd_config
+Port 2026			
+AllowUsers sshuser	
+9.BR-SRV# systemctl restart sshd
+10.ISP# apt-get update & apt-get install curl -y
+!!ISP# curl http://172.16.5.5:8080 | more
+!!ISP# curl http://172.16.5.5:8080 | head
+11.ISP# ssh sshuser@172.16.4.4 -p 2026
+yes
+P@ssw0rd
+12.ISP# ssh sshuser@172.16.5.5 -p 2026
+yes
+P@ssw0rd
+
+№10
+1.ISP#apt-get install apache2-htpasswd -y
+2.ISP#htpasswd –c /etc/nginx/.htpasswd WEB
+P@ssw0rd
+P@ssw0rd
+WEB
+3.ISP#vim /etc/nginx/sites-available.d/default.conf
+pod strokoi "proxy_set_header X-Forwarded-Proto $scheme;" dalshe
+auth_basic "Restricted area";
+auth_basic_user_file /etc/nginx/.htpasswd;
+4.ISP#nginx -t
+5.ISP#systemctl restart nginx
+6.HQ-CLI v brayzere web.au-team.irpo
+Username: WEB
+Password: P@ssw0rd
