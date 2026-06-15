@@ -131,8 +131,8 @@ HQ-RTR, BR-RTR
 (config)#router ospf 1
 1. net 10.10.10.0/30 a 0 {10.10.10.0/30}
 2. net 192.168.100.0/26 a 0 {192.168.200.0/27}
-3. net 192.168.100.64/28 a 0 { не нужно }
-4. net 192.168.100.80/29 a 0 { не нужно }
+3. net 192.168.100.64/28 a 0 { - }
+4. net 192.168.100.80/29 a 0 { - }
 5. p d
 6. no p tunnel.0
 (config)#int tunnel.0
@@ -141,9 +141,9 @@ HQ-RTR, BR-RTR
 7. write
 
 HQ-RTR, BR-RTR
-1. int vl100  int int1
+1. int vl100      int int1
 2. ip nat inside  ip nat inside
-3. int vl200  int int0
+3. int vl200      int int0
 4. ip nat inside  ip nat outside
 5. int int0
 6. ip nat outside
@@ -164,11 +164,17 @@ HQ-RTR
 8. write
 
 Proverka:
+1. Skrin proxmosa hq-srv hardware & hq-cli hardware 
 2.Tunnel
 ping 10.10.10.1(BR-RTR)
 ping 10.10.10.2(HQ-RTR)
 sh int tunnel.0
-3.SSH
-ssh sshuser@192.168.100.2 -p 2026 (P@ssw0rd) HQ-CLI
+3. do show ip ospf neighbor (hq-rtr)
+do show ip ospf interface tunnel.0 (hq-rtr)
+do show ip route ospf (hq-rtr br-rtr)
+4.show run dhcp-server 1 (hq-rtr)
+5.SSH
+ip -c a
+ssh remote_user@192.168.100.2 -p 2026 (P@ssw0rd) HQ-CLI
 sudo -i (proverka prav)
 
